@@ -31,20 +31,38 @@ func sender() {
 	}
 	f.Close()
 
+	var min, max, avg time.Duration
+
+	min = 100000
+	max = 0
+
+	count := 0
+
 	// do the stress test
-	for sl := 30; sl > 0; sl-- {
+	//for sl := 30; sl > 0; sl-- {
+	for sl := 3; sl > 0; sl-- {
 		for i := 0; i < len(hostlist)*(31-sl); i++ {
+			count++
 			// random target
 			t := hostlist[rand.Int31n(int32(len(hostlist)))]
 			t1 := time.Now()
 			test(t)
 			t2 := time.Now()
-			fmt.Println(hostname, "with", t, ":", t2.Sub(t1))
+			dt := t2.Sub(t1)
+			if dt > max {
+				max = dt
+			}
+			if dt < min {
+				min = dt
+			}
+			avg += dt
+			fmt.Println(hostname, "with", t, ":", dt)
 		}
 		// random sleep
 		time.Sleep(time.Duration(sl) * time.Second)
 	}
 
+	fmt.Println(">> stats from", hostname, ": min=", min, "max=", max, "avg=", (avg.Seconds()/float64(count))*1000000.0, "µs")
 	os.Exit(0)
 }
 
@@ -82,7 +100,7 @@ func main() {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			// handle error
+			fmt.Print("!!! error on", hostname, ":", err)
 		}
 		go handleConnection(conn)
 	}
