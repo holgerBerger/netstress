@@ -60,7 +60,7 @@ func sender() {
 
 	var min, max, avg time.Duration
 
-	min = 100000
+	min = 100000000
 	max = 0
 
 	count := 0
@@ -68,21 +68,23 @@ func sender() {
 	// do the stress test
 	for sl := 10; sl > 0; sl-- {
 		for i := 0; i < len(hostlist)*(11-sl); i++ {
-			count++
 			// random target
 			t := hostlist[rand.Int31n(int32(len(hostlist)))]
-			t1 := time.Now()
-			test(t)
-			t2 := time.Now()
-			dt := t2.Sub(t1)
-			if dt > max {
-				max = dt
+			if t != hostname {
+				count++
+				t1 := time.Now()
+				test(t)
+				t2 := time.Now()
+				dt := t2.Sub(t1)
+				if dt > max {
+					max = dt
+				}
+				if dt < min {
+					min = dt
+				}
+				avg += dt
+				fmt.Println(hostname, "with", t, ":", dt)
 			}
-			if dt < min {
-				min = dt
-			}
-			avg += dt
-			fmt.Println(hostname, "with", t, ":", dt)
 		}
 		// random sleep
 		//time.Sleep(time.Duration(rand.Int31n(int32(sl))) * time.Second)
