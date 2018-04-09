@@ -13,8 +13,6 @@ import (
 
 var hostname string
 
-// SLURM_JOB_NODELIST=hsw[017-031,033-037,069-078,080-088,109]
-
 func sender() {
 	// read list of hosts to connect to
 	hostlist := make([]string, 0, 500)
@@ -34,6 +32,7 @@ func sender() {
 			}
 		}
 		f.Close()
+		// read slurm environment
 	} else if len(os.Getenv("SLURM_JOB_NODELIST")) > 0 {
 		env := os.Getenv("SLURM_JOB_NODELIST")
 		prefix := env[:strings.Index(env, "[")]
@@ -56,8 +55,10 @@ func sender() {
 		os.Exit(-1)
 	}
 
+	// sleep so everyone can start listener
 	time.Sleep(5 * time.Second)
 
+	// seed random so not all hosts fire at same targets at same time
 	rand.Seed(time.Now().UnixNano())
 
 	var min, max, avg time.Duration
@@ -66,6 +67,7 @@ func sender() {
 	max = 0
 
 	count := 0
+	fail := 0
 
 	// do the stress test
 	for sl := 10; sl > 0; sl-- {
@@ -75,8 +77,11 @@ func sender() {
 			if t != hostname {
 				count++
 				t1 := time.Now()
-				test(t)
+				r := test(t)
 				t2 := time.Now()
+				if !r {
+					fail++
+				}
 				dt := t2.Sub(t1)
 				if dt > max {
 					max = dt
@@ -94,21 +99,25 @@ func sender() {
 		time.Sleep(time.Duration(sl) * time.Second)
 	}
 
-	fmt.Println(">> stats from", hostname, ": min=", min, "max=", max, "avg=", (avg.Seconds()/float64(count))*1000000.0, "µs", "count=", count)
+	fmt.Println(">> stats from", hostname, ": min=", min, "max=", max, "avg=", (avg.Seconds()/float64(count))*1000000.0, "µs",
+		"count=", count, "fails=", fail)
 
+	// sleep a moment so others can still test with this process
 	time.Sleep(10 * time.Second)
 	os.Exit(0)
 }
 
-func test(target string) {
+func test(target string) bool {
 	var answer string
 	conn, err := net.Dial("tcp", target+":4141")
 	if err != nil {
 		fmt.Println("!!! error on", hostname, "connecting to", target, ":", err)
+		return false
 	} else {
 		fmt.Fprintln(conn, "hello")
 		fmt.Fscan(conn, answer)
 		conn.Close()
+		return true
 	}
 }
 
