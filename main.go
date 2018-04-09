@@ -58,6 +58,8 @@ func sender() {
 
 	time.Sleep(5 * time.Second)
 
+	rand.Seed(time.Now().UnixNano())
+
 	var min, max, avg time.Duration
 
 	min = 100000000
@@ -83,7 +85,7 @@ func sender() {
 					min = dt
 				}
 				avg += dt
-				fmt.Println(hostname, "with", t, ":", dt)
+				// fmt.Println(hostname, "with", t, ":", dt)
 			}
 		}
 		// random sleep
@@ -92,7 +94,7 @@ func sender() {
 		time.Sleep(time.Duration(sl) * time.Second)
 	}
 
-	fmt.Println(">> stats from", hostname, ": min=", min, "max=", max, "avg=", (avg.Seconds()/float64(count))*1000000.0, "µs")
+	fmt.Println(">> stats from", hostname, ": min=", min, "max=", max, "avg=", (avg.Seconds()/float64(count))*1000000.0, "µs", "count=", count)
 
 	time.Sleep(10 * time.Second)
 	os.Exit(0)
