@@ -31,6 +31,8 @@ func sender() {
 	}
 	f.Close()
 
+	time.Sleep(5 * time.Second)
+
 	var min, max, avg time.Duration
 
 	min = 100000
@@ -39,9 +41,8 @@ func sender() {
 	count := 0
 
 	// do the stress test
-	//for sl := 30; sl > 0; sl-- {
-	for sl := 3; sl > 0; sl-- {
-		for i := 0; i < len(hostlist)*(31-sl); i++ {
+	for sl := 10; sl > 0; sl-- {
+		for i := 0; i < len(hostlist)*(11-sl); i++ {
 			count++
 			// random target
 			t := hostlist[rand.Int31n(int32(len(hostlist)))]
@@ -59,10 +60,14 @@ func sender() {
 			fmt.Println(hostname, "with", t, ":", dt)
 		}
 		// random sleep
+		//time.Sleep(time.Duration(rand.Int31n(int32(sl))) * time.Second)
+		// non-random sleep
 		time.Sleep(time.Duration(sl) * time.Second)
 	}
 
 	fmt.Println(">> stats from", hostname, ": min=", min, "max=", max, "avg=", (avg.Seconds()/float64(count))*1000000.0, "µs")
+
+	time.Sleep(10 * time.Second)
 	os.Exit(0)
 }
 
@@ -81,9 +86,10 @@ func test(target string) {
 func handleConnection(conn net.Conn) {
 	var data string
 	fmt.Scan(conn, data)
-	from := conn.RemoteAddr()
 	fmt.Fprintln(conn, data)
-	fmt.Println("  ", hostname, " received from ", from)
+	_ = conn.RemoteAddr()
+	//from := conn.RemoteAddr()
+	//fmt.Println("  ", hostname, " received from ", from)
 	conn.Close()
 }
 
