@@ -6,30 +6,55 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
 
 var hostname string
 
+// SLURM_JOB_NODELIST=hsw[017-031,033-037,069-078,080-088,109]
+
 func sender() {
 	// read list of hosts to connect to
 	hostlist := make([]string, 0, 500)
-	f, err := os.Open(os.Args[1])
-	if err != nil {
-		panic(err)
-	}
-	reader := bufio.NewReader(f)
-	for {
-		line, err := reader.ReadBytes('\n')
+	if len(os.Args) > 1 {
+		f, err := os.Open(os.Args[1])
 		if err != nil {
-			break
+			panic(err)
 		}
-		if line[0] != '#' {
-			hostlist = append(hostlist, strings.Trim(string(line), "\n \t"))
+		reader := bufio.NewReader(f)
+		for {
+			line, err := reader.ReadBytes('\n')
+			if err != nil {
+				break
+			}
+			if line[0] != '#' {
+				hostlist = append(hostlist, strings.Trim(string(line), "\n \t"))
+			}
 		}
+		f.Close()
+	} else if len(os.Getenv("SLURM_JOB_NODELIST")) > 0 {
+		env := os.Getenv("SLURM_JOB_NODELIST")
+		prefix := env[:strings.Index(env, "[")]
+		for _, ranges := range strings.Split(env[strings.Index(env, "[")+1:len(env)-1], ",") {
+			if strings.Index(ranges, "-") >= 0 {
+				flds := strings.Split(ranges, "-")
+				start, err1 := strconv.Atoi(flds[0])
+				end, err2 := strconv.Atoi(flds[1])
+				if err1 == nil && err2 == nil {
+					for i := start; i <= end; i++ {
+						hostlist = append(hostlist, fmt.Sprintf("%s%0*d", prefix, len(flds[0]), i))
+					}
+				}
+			} else {
+				hostlist = append(hostlist, prefix+ranges)
+			}
+		}
+	} else {
+		fmt.Println("need nodelist as file or SLURM env")
+		os.Exit(-1)
 	}
-	f.Close()
 
 	time.Sleep(5 * time.Second)
 
